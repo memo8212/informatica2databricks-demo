@@ -53,24 +53,64 @@ Full reference: **`docs/powermart-components.md`** (every component + gotchas).
 ```
 legacy/                 PowerCenter repository export + config
   workflows/WF_DAILY_BANK_FEED.xml
-  mappings/m_load_dept_txn.xml
-  mapplets/mplt_normalize_txn.xml   (mapplet + worklet)
+  mappings/m_load_dept_txn.xml        (parameterized dept feed)
+  mappings/m_customer_360.xml         (Router/Joiner/Union/Normalizer/Rank/Sorter/SQL)
+  mappings/m_scd2_customer.xml        (SCD2 on customer segment)
+  mapplets/mplt_normalize_txn.xml     (mapplet + worklet)
   sessions/session_config.xml
   sources/sources_targets.xml
   parameters/bank_params.prm
-  scripts/run_workflow.sh           (pmcmd)
+  scripts/run_workflow.sh             (pmcmd)
   oracle/DDL.sql
+infa2dbx/                conversion app: parser + codegen + CLI + verify
 converter/
-  infa_expr.py                      Informatica expression -> PySpark
-  pc2dbx_converter.py               XML export -> notebook + workflow + report
-runner/run_demo.py                  legacy -> parquet bridge -> Databricks -> validation
-data/generate_bank_feeds.py         synthetic department feeds + lookups
-notebooks/                          migrated notebooks (Asset Bundle)
-resources/                          bundle job + uc_setup.sql
-databricks.yml                      Databricks Asset Bundle root
-docs/powermart-components.md        component deep dive
-tests/                              pytest
-artifacts/                          generated outputs
+  infa_expr.py                       re-exports the canonical expression translator
+  pc2dbx_converter.py                XML export -> notebook + workflow + report
+runner/
+  run_demo.py                        dept-feed pipeline -> validation
+  run_scd2.py                        SCD2 + Delta Change Data Feed -> validation
+data/generate_bank_feeds.py          synthetic department feeds + lookups
+notebooks/                           01 ingest, 02 mapping, 03 gold, 04 SCD2 (Asset Bundle)
+resources/                           bundle job + uc_setup.sql
+databricks.yml                       Databricks Asset Bundle root
+docs/powermart-components.md         component deep dive
+tests/                               pytest (converter + infa2dbx)
+artifacts/                           generated outputs
+```
+
+## Conversion app — `infa2dbx` (CLI)
+
+`infa2dbx/` is a conversion **application**: it parses the PowerCenter XML export
+and generates a PySpark notebook, a runnable module, a workflow, a schema and a
+report — then **verifies** the generated module against the legacy result.
+
+```bash
+python -m infa2dbx convert --repo . --out build
+# -> build/notebook_*.py, build/module_*.py (linear mappings),
+#    build/workflow_*.json, build/schema.py, build/parameters.json, reports
+
+# produce the legacy result, then verify the GENERATED code:
+python runner/run_demo.py
+python -m infa2dbx verify \
+  --module build/module_m_load_dept_txn.py \
+  --data data \
+  --legacy artifacts/output/legacy/fact_daily_customer.csv
+```
+
+**Supported transformations** (parser + codegen): Source Qualifier, Lookup,
+Expression, Filter, **Router**, **Joiner**, Aggregator, Sorter, **Rank**,
+**Union**, **Normalizer**, Sequence Generator, Update Strategy, **SQL** — plus
+workflow/session/worklet/mapplet/parameter parsing. `verify` runs the generated
+module for linear mappings; Router/Union/Normalizer mappings are notebook-only
+(flagged in the report).
+
+**SCD2 + Change Data Feed:** `m_scd2_customer` migrates a Type-2 dimension —
+close the current row on change (`DD_UPDATE`) + insert the new version
+(`DD_INSERT`) → Delta `MERGE`, with the change log read from the **Change Data
+Feed**:
+
+```bash
+python runner/run_scd2.py     # SCD2 (pandas) vs Delta MERGE + CDF -> PASS
 ```
 
 ## Run
@@ -80,8 +120,10 @@ pip install pyspark delta-spark pyarrow pandas pytest
 
 python data/generate_bank_feeds.py         # synthetic dept feeds + lookups
 python converter/pc2dbx_converter.py       # PowerCenter XML -> Databricks artifacts
-python runner/run_demo.py                  # both sides + validation report
-pytest -q tests/test_converter.py          # converter tests
+python -m infa2dbx convert --repo . --out build   # app: notebooks/modules/reports
+python runner/run_demo.py                  # dept-feed pipeline + validation
+python runner/run_scd2.py                  # SCD2 + Change Data Feed + validation
+pytest -q tests/                           # converter + infa2dbx tests
 ```
 
 ## Outputs (in `artifacts/`)

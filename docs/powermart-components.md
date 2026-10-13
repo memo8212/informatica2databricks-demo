@@ -168,18 +168,28 @@ Session settings map too:
 
 ---
 
-## 9. What the converter automates (and what it doesn't)
+## 9. What the converters automate (and what they don't)
 
-`pc2dbx_converter.py` parses the PowerCenter **XML export** (`POWRMART` /
-`FOLDER` / `MAPPING` / `TRANSFORMATION` / `CONNECTOR` / `WORKFLOW` / `TASK` /
-`WORKFLOWLINK` / `SESSION` / `MAPPLET` / `WORKLET` / parameter file) and emits:
+`infa2dbx` (app) and `converter/pc2dbx_converter.py` parse the PowerCenter **XML
+export** (`POWRMART` / `FOLDER` / `MAPPING` / `TRANSFORMATION` / `CONNECTOR` /
+`WORKFLOW` / `TASK` / `WORKFLOWLINK` / `SESSION` / `MAPPLET` / `WORKLET` /
+parameter file) and emit:
 
 - a **PySpark notebook** per mapping (transformations in execution order),
+- a **runnable module** per linear mapping (used by `infa2dbx verify`),
 - a **Workflow JSON** from the workflow tasks + links,
 - **StructTypes** from sources/targets,
 - a **conversion report** with the component mapping.
 
-It covers the common transformation chain (SQ → Lookup → Expression → Filter →
-Aggregator → Sequence → Update Strategy). Like the other converters in this
-workspace, anything it can't translate is flagged rather than silently dropped —
-review the report before production use.
+**Supported transformations:** Source Qualifier, Lookup, Expression, Filter,
+**Router**, **Joiner**, Aggregator, Sorter, **Rank**, **Union**, **Normalizer**,
+Sequence Generator, Update Strategy, **SQL** transformation.
+
+**SCD2 & CDC.** `m_scd2_customer` migrates a Type-2 dimension: `DD_UPDATE` closes
+the current row, `DD_INSERT` inserts the new version → a Delta `MERGE`, with the
+change log read from the **Delta Change Data Feed** (`runner/run_scd2.py` proves
+parity: current rows + history + CDF). The same pattern covers PowerExchange CDC
+via Lakeflow Connect CDC or Delta CDF.
+
+Like the other converters in this workspace, anything it can't translate is
+flagged rather than silently dropped — review the report before production use.

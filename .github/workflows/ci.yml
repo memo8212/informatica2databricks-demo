@@ -31,11 +31,24 @@ jobs:
       - name: Run converter (PowerCenter -> Databricks artifacts)
         run: python converter/pc2dbx_converter.py
 
-      - name: Converter tests
-        run: pytest -q tests/test_converter.py
+      - name: Converter + app tests
+        run: pytest -q tests/
+
+      - name: infa2dbx convert (app)
+        run: python -m infa2dbx convert --repo . --out build
 
       - name: Run end-to-end demo + validation
         run: python runner/run_demo.py
+
+      - name: Verify generated module vs legacy result
+        run: |
+          python -m infa2dbx verify \
+            --module build/module_m_load_dept_txn.py \
+            --data data \
+            --legacy artifacts/output/legacy/fact_daily_customer.csv
+
+      - name: SCD2 + Change Data Feed
+        run: python runner/run_scd2.py
 
       - name: Show conversion report
         run: cat artifacts/generated/conversion_report.md
