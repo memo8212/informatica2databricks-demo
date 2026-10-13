@@ -1,6 +1,7 @@
-pyspark>=3.5
-delta-spark>=3.0
-pandas>=2.0
-numpy>=1.24
-pyarrow>=14
-pytest>=7.4
+# Pinned to the versions this repo was tested with (Spark 4.2 / Delta 4.4 / Java 17).
+pyspark==4.2.0
+delta-spark==4.4.1
+pandas==2.3.3
+numpy==2.5.3
+pyarrow==23.0.1
+pytest==9.1.1

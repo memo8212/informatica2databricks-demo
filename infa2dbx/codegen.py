@@ -1,7 +1,6 @@
 """Generate Databricks artifacts from the parsed PowerCenter model."""
 from __future__ import annotations
 
-from pathlib import Path
 
 from infa2dbx.expr import translate_expression
 from infa2dbx.parser import Mapping, Repository, Transform, topo_order

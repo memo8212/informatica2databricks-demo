@@ -73,7 +73,7 @@ def main() -> None:
     print(f"Legacy SCD2 done: {len(legacy)} versions, {len(legacy_current)} current")
 
     # ---- Databricks (Spark + Delta) SCD2 ----
-    from pyspark.sql import SparkSession, functions as F
+    from pyspark.sql import SparkSession
     from pyspark.sql.types import StructType, StructField, StringType
     from delta import configure_spark_with_delta_pip
     builder = (SparkSession.builder.master("local[2]").appName("scd2_demo")

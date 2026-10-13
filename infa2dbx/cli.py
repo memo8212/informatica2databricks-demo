@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 from infa2dbx.codegen import build_module, build_notebook, build_schema, build_workflow, is_linear
