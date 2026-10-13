@@ -1,0 +1,29 @@
+# ============================================================================
+# PowerCenter parameter file — REP_BANK_PROD / BANK_ETL
+# Mapping parameters, session parameters and workflow variables.
+# ============================================================================
+
+[Global]
+$$BASE_CCY=CAD
+$$BATCH_ID=0
+
+# --- department mapping parameter (one value per session) -------------------
+[s_dept_cards]
+$$DEPT=CARDS
+
+[s_dept_payments]
+$$DEPT=PAYMENTS
+
+[s_dept_loans]
+$$DEPT=LOANS
+
+[s_dept_deposits]
+$$DEPT=DEPOSITS
+
+[s_dept_wealth]
+$$DEPT=WEALTH
+
+# --- workflow variables -----------------------------------------------------
+[WF_DAILY_BANK_FEED.WF:WKLT_DEPT_INGEST]
+$$BATCH_ID=20260115
+$$BASE_CCY=CAD

@@ -1,0 +1,104 @@
+# WF_DAILY_BANK_FEED migrated to a Databricks Workflow.
+# Worklet wklt_dept_ingest -> 5 session tasks (one per department feed),
+# then gold summary, with email notification on completion.
+resources:
+  jobs:
+    wf_daily_bank_feed:
+      name: WF_DAILY_BANK_FEED
+      tags:
+        project: informatica2databricks-poc
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      job_clusters:
+        - job_cluster_key: bank_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 2
+      tasks:
+        - task_key: ingest
+          job_cluster_key: bank_cluster
+          notebook_task:
+            notebook_path: ../notebooks/01_ingest_dept_feeds.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+
+        # wklt_dept_ingest: one session per department (parameterized mapping)
+        - task_key: dept_cards
+          job_cluster_key: bank_cluster
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/02_load_dept_txn.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              DEPT: CARDS
+        - task_key: dept_payments
+          job_cluster_key: bank_cluster
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/02_load_dept_txn.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              DEPT: PAYMENTS
+        - task_key: dept_loans
+          job_cluster_key: bank_cluster
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/02_load_dept_txn.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              DEPT: LOANS
+        - task_key: dept_deposits
+          job_cluster_key: bank_cluster
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/02_load_dept_txn.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              DEPT: DEPOSITS
+        - task_key: dept_wealth
+          job_cluster_key: bank_cluster
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/02_load_dept_txn.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              DEPT: WEALTH
+
+        # dec_rowcount + cmd_refresh_gold + s_gold_summary -> gold task
+        - task_key: gold_summary
+          job_cluster_key: bank_cluster
+          depends_on:
+            - task_key: dept_cards
+            - task_key: dept_payments
+            - task_key: dept_loans
+            - task_key: dept_deposits
+            - task_key: dept_wealth
+          notebook_task:
+            notebook_path: ../notebooks/03_gold_summary.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+
+      # email_notify (PowerCenter Email task)
+      email_notifications:
+        on_failure:
+          - bank-etl-ops@example.com
+      # schedule (PowerCenter Timer / workflow schedule "0 0 1 * * ?"):
+      # schedule:
+      #   quartz_cron_expression: "0 0 1 * * ?"
+      #   timezone_id: UTC

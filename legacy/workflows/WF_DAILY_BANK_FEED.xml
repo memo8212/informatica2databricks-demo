@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE POWERMART SYSTEM "powrmart.dtd">
+<POWERMART CREATION_DATE="01/15/2026 02:11:07" REPOSITORY_VERSION="188.95">
+<REPOSITORY NAME="REP_BANK_PROD" VERSION="188" CODEPAGE="UTF-8">
+<FOLDER NAME="BANK_ETL" GROUP="" OWNER="etl_admin" SHARED="NOTSHARED">
+
+<!--
+  WF_DAILY_BANK_FEED — master workflow for the nightly department-feed
+  consolidation. Orchestrates the department worklet, a decision task,
+  a command task (pmcmd), the gold summary session and an email notification.
+-->
+<WORKFLOW DESCRIPTION="Daily bank department feed consolidation" ISENABLED="YES" ISVALID="YES"
+          NAME="WF_DAILY_BANK_FEED" OBJECTVERSION="1" SCHEDULE="0 0 1 * * ?"
+          SERVERNAME="IS_BANK_PROD" VERSIONNUMBER="11">
+
+  <TASK NAME="start"            TYPE="Start"    REUSABLE="NO" ISVALID="YES"/>
+  <TASK NAME="wklt_dept_ingest" TYPE="Worklet"  REUSABLE="NO" ISVALID="YES" DESCRIPTION="Department feeds"/>
+  <TASK NAME="dec_rowcount"     TYPE="Decision" REUSABLE="NO" ISVALID="YES">
+    <TABLEATTRIBUTE NAME="Decision Name" VALUE="Rows loaded?"/>
+    <TABLEATTRIBUTE NAME="Expression" VALUE="$WKLT_DEPT_INGEST.s_dept_wealth.Status = SUCCEEDED"/>
+  </TASK>
+  <TASK NAME="cmd_refresh_gold" TYPE="Command"  REUSABLE="NO" ISVALID="YES">
+    <TABLEATTRIBUTE NAME="Command" VALUE="pmcmd startworkflow -service IS_BANK_PROD -folder BANK_ETL -wait WF_GOLD_SUMMARY"/>
+  </TASK>
+  <TASK NAME="s_gold_summary"   TYPE="Session"  REUSABLE="NO" ISVALID="YES"/>
+  <TASK NAME="email_notify"     TYPE="Email"    REUSABLE="NO" ISVALID="YES">
+    <TABLEATTRIBUTE NAME="Email To" VALUE="bank-etl-ops@example.com"/>
+    <TABLEATTRIBUTE NAME="Email Subject" VALUE="WF_DAILY_BANK_FEED $PMSessionRunMode complete"/>
+  </TASK>
+
+  <WORKFLOWLINK CONDITION="" FROMTASK="start"            TOTASK="wklt_dept_ingest"/>
+  <WORKFLOWLINK CONDITION="" FROMTASK="wklt_dept_ingest" TOTASK="dec_rowcount"/>
+  <WORKFLOWLINK CONDITION="" FROMTASK="dec_rowcount"     TOTASK="cmd_refresh_gold"/>
+  <WORKFLOWLINK CONDITION="" FROMTASK="cmd_refresh_gold" TOTASK="s_gold_summary"/>
+  <WORKFLOWLINK CONDITION="" FROMTASK="s_gold_summary"   TOTASK="email_notify"/>
+
+  <!-- workflow variables -->
+  <WORKFLOWVARIABLE DATATYPE="integer" DEFAULTVALUE="0" ISNULL="NO" NAME="$$BATCH_ID" VALUE="0"/>
+  <WORKFLOWVARIABLE DATATYPE="string"  DEFAULTVALUE="CAD" ISNULL="NO" NAME="$$BASE_CCY" VALUE="CAD"/>
+</WORKFLOW>
+
+</FOLDER>
+</REPOSITORY>
+</POWERMART>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE POWERMART SYSTEM "powrmart.dtd">
+<POWERMART CREATION_DATE="01/15/2026 02:11:07" REPOSITORY_VERSION="188.95">
+<REPOSITORY NAME="REP_BANK_PROD" VERSION="188" CODEPAGE="UTF-8">
+<FOLDER NAME="BANK_ETL" GROUP="" OWNER="etl_admin" SHARED="NOTSHARED">
+
+<!-- Session configurations: connection + commit + pre/post SQL + error handling -->
+<CONFIG DESCRIPTION="Flat-file source, Oracle target, bulk load" ISDEFAULT="YES"
+        NAME="cfg_dept_session" VERSIONNUMBER="4">
+  <SESSIONEXTENSION NAME="Relational Reader" TYPE="READER" SESSINSTANCE="s_dept_cards">
+    <CONNECTIONREFERENCE CNXNAME="ORCL_BANK" VARIABLE="$DBConnection_ORCL_BANK"/>
+    <ATTRIBUTE NAME="Sql Query" VALUE="SELECT * FROM DEPT_TXN WHERE DEPT_CODE = '$$DEPT'"/>
+  </SESSIONEXTENSION>
+  <SESSIONEXTENSION NAME="Relational Writer" TYPE="WRITER" SESSINSTANCE="s_dept_cards">
+    <CONNECTIONREFERENCE CNXNAME="ORCL_BANK" VARIABLE="$DBConnection_ORCL_BANK"/>
+    <ATTRIBUTE NAME="Target Load Type" VALUE="Bulk"/>
+    <ATTRIBUTE NAME="Update as Update" VALUE="YES"/>
+  </SESSIONEXTENSION>
+  <SESSIONEXTENSION NAME="Pre SQL" TYPE="PRE" SESSINSTANCE="s_dept_cards">
+    <ATTRIBUTE NAME="Pre SQL" VALUE="ALTER SESSION SET PARALLEL_DEGREE_POLICY=MANUAL"/>
+  </SESSIONEXTENSION>
+  <SESSIONEXTENSION NAME="Post SQL" TYPE="POST" SESSINSTANCE="s_dept_cards">
+    <ATTRIBUTE NAME="Post SQL" VALUE="ANALYZE TABLE FACT_DAILY_CUSTOMER COMPUTE STATISTICS"/>
+  </SESSIONEXTENSION>
+  <ATTRIBUTE NAME="Commit Interval" VALUE="10000"/>
+  <ATTRIBUTE NAME="Error Handling" VALUE="Continue on Error"/>
+  <ATTRIBUTE NAME="Treat Source Rows as" VALUE="Update"/>
+</CONFIG>
+
+<SESSION NAME="s_dept_cards"    MAPPINGNAME="m_load_dept_txn" ISVALID="YES" DESCRIPTION="Cards feed"/>
+<SESSION NAME="s_dept_payments" MAPPINGNAME="m_load_dept_txn" ISVALID="YES" DESCRIPTION="Payments feed"/>
+<SESSION NAME="s_dept_loans"    MAPPINGNAME="m_load_dept_txn" ISVALID="YES" DESCRIPTION="Loans feed"/>
+<SESSION NAME="s_dept_deposits" MAPPINGNAME="m_load_dept_txn" ISVALID="YES" DESCRIPTION="Deposits feed"/>
+<SESSION NAME="s_dept_wealth"   MAPPINGNAME="m_load_dept_txn" ISVALID="YES" DESCRIPTION="Wealth feed"/>
+<SESSION NAME="s_gold_summary"  MAPPINGNAME="m_gold_segment_summary" ISVALID="YES" DESCRIPTION="Gold summary"/>
+
+</FOLDER>
+</REPOSITORY>
+</POWERMART>

@@ -1,0 +1,59 @@
+{
+  "name": "WF_DAILY_BANK_FEED",
+  "schedule": "0 0 1 * * ?",
+  "parameters": [
+    {
+      "name": "$$BATCH_ID",
+      "value": "0",
+      "type": "integer"
+    },
+    {
+      "name": "$$BASE_CCY",
+      "value": "CAD",
+      "type": "string"
+    }
+  ],
+  "tasks": [
+    {
+      "task_key": "wklt_dept_ingest",
+      "kind": "sub-workflow",
+      "depends_on": []
+    },
+    {
+      "task_key": "dec_rowcount",
+      "kind": "conditional",
+      "depends_on": [
+        {
+          "task_key": "wklt_dept_ingest"
+        }
+      ]
+    },
+    {
+      "task_key": "cmd_refresh_gold",
+      "kind": "python_task",
+      "depends_on": [
+        {
+          "task_key": "dec_rowcount"
+        }
+      ]
+    },
+    {
+      "task_key": "s_gold_summary",
+      "kind": "notebook",
+      "depends_on": [
+        {
+          "task_key": "cmd_refresh_gold"
+        }
+      ]
+    },
+    {
+      "task_key": "email_notify",
+      "kind": "notification",
+      "depends_on": [
+        {
+          "task_key": "s_gold_summary"
+        }
+      ]
+    }
+  ]
+}

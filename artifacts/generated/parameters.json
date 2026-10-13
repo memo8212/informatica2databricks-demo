@@ -1,0 +1,28 @@
+{
+  "global": {
+    "$$BASE_CCY": "CAD",
+    "$$BATCH_ID": "0"
+  },
+  "sections": {
+    "Global": {},
+    "s_dept_cards": {
+      "$$DEPT": "CARDS"
+    },
+    "s_dept_payments": {
+      "$$DEPT": "PAYMENTS"
+    },
+    "s_dept_loans": {
+      "$$DEPT": "LOANS"
+    },
+    "s_dept_deposits": {
+      "$$DEPT": "DEPOSITS"
+    },
+    "s_dept_wealth": {
+      "$$DEPT": "WEALTH"
+    },
+    "WF_DAILY_BANK_FEED.WF:WKLT_DEPT_INGEST": {
+      "$$BATCH_ID": "20260115",
+      "$$BASE_CCY": "CAD"
+    }
+  }
+}
